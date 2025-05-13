@@ -16,10 +16,11 @@ class Config:
     DB_DRIVER = os.getenv('DB_DRIVER')
     
     # 安全配置
-    SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here')
+    SECRET_KEY = os.getenv('SECRET_KEY', '!!DEFAULT_KEY_CHANGE_THIS_IN_PRODUCTION!!')
     
     # CORS 配置
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*')
+    # 從環境變數讀取 CORS_ORIGINS，預設為 'http://localhost:3000'，並以逗號分隔
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000').split(',')
     
     # 其他配置
     DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
@@ -37,11 +38,11 @@ def create_app(test_config=None):
         # 載入測試配置
         app.config.from_mapping(test_config)
     
-    # 暫時禁用 CORS 以避免測試中的錯誤
-    # CORS(app, resources={r"/api/*": {
-    #     "origins": ["http://localhost", "http://localhost:3000"],
-    #     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    # }})
+    # 設定 CORS
+    CORS(app, 
+         resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}},
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         supports_credentials=True)
     
     # 確保實例文件夾存在
     try:
