@@ -128,12 +128,14 @@ def logout(user_id): # user_id 由 @require_auth 注入
 
 # ... (其他路由類似)
 @auth_bp.route('/users', methods=['GET'])
-@require_priority_level(2)
+@require_priority_level(1)
 def get_users(user_id): # user_id 由 @require_priority_level 注入
     try:
+        current_app.logger.info(f"GET /users - user_id: {user_id}")
         users = get_all_users()
         for user in users:
             if 'Password' in user: del user['Password']
+        current_app.logger.info(f"Successfully retrieved {len(users)} users")
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"獲取用戶列表失敗: {str(e)}")

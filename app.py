@@ -23,6 +23,14 @@ def setup_basic_routes(app):
         return {"success": True, "message": "RoutinInspection API 服務正常運行 (v2)"}
     app.logger.info("Basic /api/ping route registered.")
 
+
+# 除錯：確認環境變數載入狀況
+print("=== DEBUG INFO ===")
+print(f"Current working directory: {os.getcwd()}")
+print(f"SECRET_KEY exists: {bool(os.getenv('SECRET_KEY'))}")
+print(f"CORS_ORIGINS: {os.getenv('CORS_ORIGINS')}")
+print(f"FLASK_ENV: {os.getenv('FLASK_ENV')}")
+
 # 使用工廠函數創建應用實例
 # 這允許更靈活的配置，例如為測試創建不同的應用實例
 app = create_app()
@@ -43,6 +51,9 @@ if __name__ == '__main__':
     # 使用來自 app.config 的 PORT 和 DEBUG 設定
     # host='0.0.0.0' 允許來自外部的連接，適合容器化或開發時從其他機器訪問
     # 生產環境應使用 WSGI 伺服器 (如 Gunicorn) 而不是 Flask 內建的開發伺服器
+    print(f"App CORS_ORIGINS: {app.config.get('CORS_ORIGINS')}")
+    print(f"App SECRET_KEY exists: {bool(app.config.get('SECRET_KEY'))}")
+    print("=== Starting Flask ===")
     
     # 從配置獲取 host, port, debug
     # DEBUG 通常由 FLASK_DEBUG 或 FLASK_ENV 控制，並在 create_app 時設定到 app.config['DEBUG']
@@ -52,4 +63,4 @@ if __name__ == '__main__':
     debug_mode = app.config.get('DEBUG', False) # 從 app.config 獲取 DEBUG 狀態
 
     app.logger.info(f"Starting Flask development server on {host}:{port} with DEBUG={debug_mode}")
-    app.run(host=host, port=port, debug=debug_mode)
+    app.run(host=host, port=port, debug=debug_mode, use_reloader=debug_mode)

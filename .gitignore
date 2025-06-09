@@ -62,8 +62,9 @@ db.sqlite3-journal # SQLite3 journal file
 instance/ # Common for Flask and Django instance configurations
 
 # Flask stuff:
-instance/ # Same as above
+instance/
 .webassets-cache
+.flaskenv
 
 # Scrapy stuff:
 .scrapy
@@ -129,3 +130,20 @@ desktop.ini # Windows
 # Other
 *.swp # Vim swap files
 *~ # Backup files
+
+# SQL Server specific
+*.bak
+*.mdf
+*.ldf
+
+# Database connection files
+*.dsn
+
+# Temporary files
+*.tmp
+*.temp
+
+# Application specific
+uploads/
+logs/
+instance/config.py

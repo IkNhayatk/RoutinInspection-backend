@@ -25,7 +25,6 @@ class Config:
                                         # 或者保留一個非常明確的警告性預設值，並在應用啟動時檢查
     # SECRET_KEY = os.getenv('SECRET_KEY', '!!DEFAULT_KEY_MUST_BE_CHANGED_IN_PRODUCTION_ENV_VARIABLE!!')
 
-
     # CORS 配置
     # 從環境變數讀取 CORS_ORIGINS，預設為 'http://localhost:3000' (適合開發)
     # 生產環境應設定為實際的前端來源
@@ -81,7 +80,6 @@ def create_app(test_config=None):
     # if app.debug: # 開發模式下可能有更詳細的日誌
     #    app.logger.setLevel(logging.DEBUG)
 
-
     # 設定 CORS
     # 確保 app.config['CORS_ORIGINS'] 是正確的列表
     cors_origins_config = app.config.get('CORS_ORIGINS', [])
@@ -106,8 +104,6 @@ def create_app(test_config=None):
         from flask import request, jsonify
         return jsonify({'message': 'CORS test successful', 'origin': request.headers.get('Origin')})
 
-    
-
     # 確保實例文件夾存在 (如果使用 instance-relative config)
     try:
         os.makedirs(app.instance_path, exist_ok=True)
@@ -115,12 +111,7 @@ def create_app(test_config=None):
         app.logger.error(f"Could not create instance path: {app.instance_path}")
         pass # 或者根據情況處理此錯誤
     
-    # 在這裡初始化擴展 (如資料庫) 和註冊藍圖
-    # 例如: from . import db
-    # db.init_app(app)
-    #
-    # from .routes import auth_bp, form_bp
-    # app.register_blueprint(auth_bp)
-    # app.register_blueprint(form_bp)
+    # 移除 blueprint 註冊 - 這將在 app.py 中統一處理
+    # 原本的 blueprint 註冊代碼已移除
 
     return app

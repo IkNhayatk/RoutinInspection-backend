@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app  # 添加 current_app import
 from models.route import get_route_by_id, get_all_routes, create_route, update_route, delete_route
 
 # 導入資料庫連接
@@ -130,4 +130,3 @@ def delete_route_data(route_id):
             "success": False,
             "message": f"刪除路線失敗: {str(e)}"
         }), 500
-
