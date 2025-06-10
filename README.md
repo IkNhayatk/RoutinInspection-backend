@@ -63,14 +63,14 @@ RoutinInspection-backend/
      CORS_ORIGINS=<allowed-origins>
      FLASK_ENV=development
      FLASK_DEBUG=true
-     PORT=5000
+     PORT=3001
      ```
 5. 啟動應用程序：
    ```
    python app.py
    ```
 
-應用程序將在 `http://localhost:5000` 上運行（或根據您的 `PORT` 設定）。
+應用程序將在 `http://localhost:3001` 上運行（或根據您的 `PORT` 設定）。
 
 ## 使用說明
 

@@ -35,7 +35,7 @@ class Config:
     DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() in ('true', '1', 't') \
             or os.getenv('FLASK_ENV', 'production').lower() == 'development'
             
-    PORT = int(os.getenv('PORT', 5000)) # Flask 常用的預設 PORT 是 5000
+    PORT = int(os.getenv('PORT', 3001)) # 設定為 3001 以配合前端
 
     # 應用程式根日誌級別 (可選，用於更細緻的日誌控制)
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
@@ -96,7 +96,7 @@ def create_app(test_config=None):
     
     # 添加調試日誌
     app.logger.info(f"CORS configured for origins: {cors_origins_config}")
-    app.logger.info(f"Server running on port: {app.config.get('PORT', 5000)}")
+    app.logger.info(f"Server running on port: {app.config.get('PORT', 3001)}")
 
     # 添加一個簡單的測試路由來驗證 CORS
     @app.route('/api/test', methods=['GET', 'OPTIONS'])

@@ -37,7 +37,7 @@ class TestConfig:
             config = Config()
             
             assert config.DB_TRUST_SERVER_CERTIFICATE is False
-            assert config.PORT == 5000
+            assert config.PORT == 3001
             assert config.LOG_LEVEL == 'INFO'
             assert config.ENV == 'production'
     
@@ -398,5 +398,5 @@ class TestConfigurationValidation:
         app = create_app(test_config)
         
         # 檢查是否有適當的類型轉換或預設值
-        assert isinstance(app.config.get('PORT', 5000), int)
+        assert isinstance(app.config.get('PORT', 3001), int)
         # assert isinstance(app.config.get('DEBUG', False), bool)

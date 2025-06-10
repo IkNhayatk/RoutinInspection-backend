@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # DEBUG 通常由 FLASK_DEBUG 或 FLASK_ENV 控制，並在 create_app 時設定到 app.config['DEBUG']
     # PORT 也在 config.py 中設定
     host = os.getenv('HOST', '0.0.0.0') # 也可以從環境變數獲取 HOST
-    port = app.config.get('PORT', 5000) # 從 app.config 獲取 PORT
+    port = app.config.get('PORT', 3001) # 從 app.config 獲取 PORT
     debug_mode = app.config.get('DEBUG', False) # 從 app.config 獲取 DEBUG 狀態
 
     app.logger.info(f"Starting Flask development server on {host}:{port} with DEBUG={debug_mode}")
