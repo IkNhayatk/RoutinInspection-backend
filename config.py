@@ -3,57 +3,75 @@ from dotenv import load_dotenv
 from flask import Flask, request # Flask 實例化移到 create_app 中
 from flask_cors import CORS
 
-# 載入環境變數
-# 確保 .env 檔案與此 config.py 在同一目錄，或者 load_dotenv() 指定路徑
-load_dotenv()
+def _get_bool_env(env_var, default=False):
+    """Helper function to parse boolean environment variables"""
+    value = os.getenv(env_var, '').lower()
+    if default:
+        return value not in ('false', 'f', '0', 'no', 'n', '')
+    else:
+        return value in ('true', 't', '1', 'yes', 'y')
+
+def _get_int_env(env_var, default=None):
+    """Helper function to parse integer environment variables"""
+    try:
+        return int(os.getenv(env_var, default))
+    except (ValueError, TypeError):
+        return default
 
 class Config:
     """應用程式配置類"""
-    # 資料庫配置
-    DB_HOST = os.getenv('DB_HOST')
-    DB_NAME = os.getenv('DB_NAME')
-    DB_USER = os.getenv('DB_USER')
-    DB_PASSWORD = os.getenv('DB_PASSWORD')
-    DB_DRIVER = os.getenv('DB_DRIVER')
-    # 新增：控制是否信任資料庫伺服器憑證
-    DB_TRUST_SERVER_CERTIFICATE = os.getenv('DB_TRUST_SERVER_CERTIFICATE', 'no').lower() == 'yes'
-    
-    # 安全配置
-    # 修改後的 SECRET_KEY 預設值，更明確提示需要更改
-    # 實際的密鑰應從環境變數 SECRET_KEY 讀取
-    SECRET_KEY = os.getenv('SECRET_KEY') # 移除預設值，強制從環境變數讀取
-                                        # 或者保留一個非常明確的警告性預設值，並在應用啟動時檢查
-    # SECRET_KEY = os.getenv('SECRET_KEY', '!!DEFAULT_KEY_MUST_BE_CHANGED_IN_PRODUCTION_ENV_VARIABLE!!')
+    def __init__(self, load_env=True):
+        # Load environment variables only when Config is instantiated
+        # This allows tests to properly mock environment variables
+        # load_env parameter allows tests to skip .env loading
+        if load_env:
+            load_dotenv()
+        
+        # 資料庫配置
+        self.DB_HOST = os.getenv('DB_HOST')
+        self.DB_NAME = os.getenv('DB_NAME')
+        self.DB_USER = os.getenv('DB_USER')
+        self.DB_PASSWORD = os.getenv('DB_PASSWORD')
+        self.DB_DRIVER = os.getenv('DB_DRIVER')
+        # 新增：控制是否信任資料庫伺服器憑證
+        self.DB_TRUST_SERVER_CERTIFICATE = _get_bool_env('DB_TRUST_SERVER_CERTIFICATE', False)
+        
+        # 安全配置
+        self.SECRET_KEY = os.getenv('SECRET_KEY', '!!DEFAULT_KEY_MUST_BE_CHANGED_IN_PRODUCTION_ENV_VARIABLE!!')
 
-    # CORS 配置
-    # 從環境變數讀取 CORS_ORIGINS，預設為 'http://localhost:3000' (適合開發)
-    # 生產環境應設定為實際的前端來源
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
-    
-    # 其他配置
-    # DEBUG 模式預設為 False，除非環境變數明確設為 True
-    DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() in ('true', '1', 't') \
-            or os.getenv('FLASK_ENV', 'production').lower() == 'development'
-            
-    PORT = int(os.getenv('PORT', 3001)) # 設定為 3001 以配合前端
+        # CORS 配置
+        cors_origins_str = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000')
+        self.CORS_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
+        
+        # 其他配置
+        # 環境設定 - 必須先設定才能用於 DEBUG 判斷
+        self.ENV = os.getenv('FLASK_ENV', 'production')
+        
+        # DEBUG 模式預設為 False，只有在明確設定或開發環境才啟用
+        flask_debug = _get_bool_env('FLASK_DEBUG', False)
+        is_development = self.ENV.lower() == 'development'
+        self.DEBUG = flask_debug or is_development
+                
+        self.PORT = _get_int_env('PORT', 3001)
 
-    # 應用程式根日誌級別 (可選，用於更細緻的日誌控制)
-    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
-
-    # 環境設定
-    ENV = os.getenv('FLASK_ENV', 'production')
+        # 應用程式根日誌級別 (可選，用於更細緻的日誌控制)
+        self.LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
 
 
-def create_app(test_config=None):
+def create_app(test_config=None, load_env=True):
     """創建並配置應用程式實例的工廠函數"""
     app = Flask(__name__) # 應用實例在工廠函數內部創建
     
     # 配置應用
     if test_config is None:
         # 載入實例配置 (Config 類)
-        app.config.from_object(Config)
+        config_instance = Config(load_env=load_env)
+        app.config.from_object(config_instance)
     else:
         # 載入測試配置 (如果傳入)
+        # First load default config, then override with test config
+        config_instance = Config(load_env=load_env)
+        app.config.from_object(config_instance)
         app.config.from_mapping(test_config)
 
     # --- 關鍵安全檢查：SECRET_KEY ---
