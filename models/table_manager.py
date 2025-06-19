@@ -207,19 +207,63 @@ def update_form(form_id, form_data):
             cursor.close()
 
 def delete_form(form_id):
-    """從 TableManager 刪除表單定義 (邏輯刪除，設定 TestMode=3)"""
+    """從 TableManager 刪除表單定義 (邏輯刪除，設定 TestMode=3 並重新命名資料表)"""
     db = get_db()
     cursor = db.cursor()
     try:
-        # 改為更新 TestMode=3 進行邏輯刪除
-        cursor.execute("UPDATE TableManager SET TestMode = 3 WHERE TableManagerId = ?", (form_id,))
+        # 1. 先獲取目前的表單資訊並進行 trim 處理
+        cursor.execute("SELECT TableName FROM TableManager WHERE TableManagerId = ? AND TestMode != 3", (form_id,))
+        result = cursor.fetchone()
+        if not result:
+            current_app.logger.warning(f"Attempted to delete non-existent or already deleted form definition ID: {form_id}")
+            return False
+        
+        table_name = result[0].strip()  # 對表名進行 trim() 處理
+        
+        # 2. 生成新的表名（加上 'old' + 流水號），檢查衝突並遞增
+        new_table_name = _generate_unique_table_name(cursor, table_name)
+        
+        # 3. 更新 TableManager 設定 TestMode=3 並更新 TableName
+        cursor.execute("""
+            UPDATE TableManager 
+            SET TestMode = 3, TableName = ? 
+            WHERE TableManagerId = ?
+        """, (new_table_name, form_id))
+        
+        # 儲存 UPDATE 操作影響的行數
+        update_rowcount = cursor.rowcount
+        
+        # 4. 重新命名實際的資料表
+        try:
+            # 檢查原始表是否存在
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM INFORMATION_SCHEMA.TABLES 
+                WHERE TABLE_NAME = ? AND TABLE_SCHEMA = 'dbo'
+            """, (table_name,))
+            table_exists = cursor.fetchone()[0] > 0
+            
+            if table_exists:
+                # 執行表名重新命名
+                rename_sql = f"EXEC sp_rename '{table_name}', '{new_table_name}'"
+                cursor.execute(rename_sql)
+                current_app.logger.info(f"Renamed table from {table_name} to {new_table_name}")
+            else:
+                current_app.logger.warning(f"Table {table_name} does not exist, skipping rename")
+        except Exception as rename_error:
+            current_app.logger.error(f"Error renaming table {table_name} to {new_table_name}: {str(rename_error)}")
+            # 即使重新命名失敗，我們也繼續進行邏輯刪除
+        
         db.commit()
-        if cursor.rowcount > 0:
-            current_app.logger.info(f"Logically deleted form definition ID: {form_id}")
+        
+        # 使用儲存的 UPDATE 操作行數檢查
+        if update_rowcount > 0:
+            current_app.logger.info(f"Logically deleted form definition ID: {form_id}, renamed table to: {new_table_name}")
             return True
         else:
-            current_app.logger.warning(f"Attempted to delete non-existent or already deleted form definition ID: {form_id}")
-            return False # ID 不存在或已被邏輯刪除
+            current_app.logger.warning(f"No rows affected when deleting form definition ID: {form_id}")
+            return False
+            
     except Exception as e:
         db.rollback()
         current_app.logger.error(f"Error logically deleting form definition ID {form_id}: {str(e)}")
@@ -227,6 +271,37 @@ def delete_form(form_id):
     finally:
         if cursor:
             cursor.close()
+
+def _generate_unique_table_name(cursor, original_table_name):
+    """生成唯一的表名，格式為：原名 + '_old' + 流水號"""
+    counter = 1
+    while True:
+        new_table_name = f"{original_table_name}_old{counter}"
+        
+        # 檢查 TableManager 中是否已存在相同名稱
+        cursor.execute("SELECT COUNT(*) FROM TableManager WHERE TableName = ?", (new_table_name,))
+        manager_exists = cursor.fetchone()[0] > 0
+        
+        # 檢查實際資料表是否已存在
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM INFORMATION_SCHEMA.TABLES 
+            WHERE TABLE_NAME = ? AND TABLE_SCHEMA = 'dbo'
+        """, (new_table_name,))
+        table_exists = cursor.fetchone()[0] > 0
+        
+        # 如果都不存在，就使用這個名稱
+        if not manager_exists and not table_exists:
+            return new_table_name
+        
+        # 如果存在衝突，流水號 +1 繼續檢查
+        counter += 1
+        
+        # 防止無限循環，設定上限
+        if counter > 9999:
+            raise Exception(f"無法為表 {original_table_name} 生成唯一名稱，已達到最大嘗試次數")
+    
+    return new_table_name
 
 def update_form_mode(form_id, mode):
     """更新表單定義的模式 (TestMode)"""

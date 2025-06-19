@@ -147,3 +147,9 @@ desktop.ini # Windows
 uploads/
 logs/
 instance/config.py
+
+# Database schema
+db_schema/
+
+# Data files
+*.sql
