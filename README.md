@@ -10,11 +10,12 @@ RoutinInspection 是一個基於 Flask 的企業級例行巡檢管理系統後�
 ## 📋 專案概述
 
 ### 🎯 核心功能
-- **🔐 用戶認證系統**：JWT token 認證、角色權限管理、密碼安全加密
+- **🔐 用戶認證系統**：JWT token 認證、多層級角色權限管理、密碼安全加密
 - **📝 動態表單管理**：JSON schema 表單創建、自動資料表生成、驗證規則管理
 - **🔄 路由綁定**：巡檢路線與表單關聯、動態資料管理
-- **👥 用戶管理**：多層級權限控制、工作狀態追蹤、個人資料管理
-- **🛡️ 安全機制**：CORS 保護、SQL 注入防護、bcrypt 密碼加密
+- **👥 用戶管理**：部門權限控制、批量使用者匯入、分頁查詢、工作狀態追蹤
+- **🛡️ 安全機制**：CORS 保護、SQL 注入防護、bcrypt 密碼加密、活動監控
+- **📊 資料管理**：CSV 批量匯入、分頁搜索、資料一致性修復
 
 ### 🏗️ 技術架構
 - **Web 框架**：Flask 2.2.3 with Blueprint 架構
@@ -231,12 +232,14 @@ docker run -p 3001:3001 --env-file .env routin-inspection-backend
 
 #### 其他認證端點
 - **POST /api/logout** - 用戶登出 (需要認證)
-- **GET /api/users** - 獲取用戶列表 (需要優先級別 2+)
-- **POST /api/users** - 創建新用戶 (需要優先級別 3)
-- **PUT /api/users/{id}** - 更新用戶資訊 (需要優先級別 3)
-- **DELETE /api/users/{id}** - 刪除用戶 (需要優先級別 3)
+- **GET /api/users** - 獲取用戶列表 (支援分頁、搜索、部門權限控制)
+- **POST /api/users** - 創建新用戶 (部門權限控制)
+- **PUT /api/users/{id}** - 更新用戶資訊 (部門權限控制)
+- **DELETE /api/users/{id}** - 刪除用戶 (部門權限控制)
+- **POST /api/users/bulk-import** - 批量匯入用戶 (CSV 格式)
 - **GET /api/profile** - 獲取當前用戶資料 (需要認證)
 - **POST /api/change_password** - 更改密碼 (需要認證)
+- **POST /api/users/fix-consistency** - 修復用戶資料一致性
 
 ### 📝 表單管理端點
 
@@ -273,6 +276,34 @@ docker run -p 3001:3001 --env-file .env routin-inspection-backend
 - **POST /api/routes** - 創建新路由
 - **PUT /api/routes/{id}** - 更新路由
 - **DELETE /api/routes/{id}** - 刪除路由
+
+### 📊 批量操作端點
+
+#### POST /api/users/bulk-import
+批量匯入用戶 (支援 CSV 格式)
+```json
+// 請求 (multipart/form-data)
+{
+  "file": "users.csv" // CSV 檔案包含用戶資料
+}
+
+// 回應
+{
+  "success": true,
+  "imported_count": 25,
+  "error_count": 2,
+  "message": "匯入完成：成功 25 個，失敗 2 個",
+  "imported_users": [...],
+  "errors": [
+    "第3行：只能匯入優先級別1和2的用戶",
+    "第7行：只能匯入部門前3碼與您相同的用戶"
+  ]
+}
+```
+
+#### 其他管理端點
+- **POST /api/users/fix-consistency** - 修復所有用戶資料一致性
+- **GET /api/users?page=1&page_size=10&search=keyword** - 分頁查詢用戶
 
 ## 🧪 測試指南
 
@@ -388,6 +419,8 @@ server {
 - JWT token 預設 24 小時過期
 - 密碼使用 bcrypt 加密儲存
 - 支援多層級權限控制 (PriorityLevel 1-3)
+- 部門權限控制：基於部門前3碼的權限隔離
+- 活動監控：追蹤用戶操作和閒置時間
 
 ### 資料庫安全
 - 使用參數化查詢防止 SQL 注入
@@ -398,6 +431,8 @@ server {
 - CORS 跨域請求保護
 - 請求頻率限制 (可選)
 - 輸入驗證和清理
+- 批量操作權限控制
+- 檔案上傳安全驗證
 
 ## 🐛 常見問題
 
